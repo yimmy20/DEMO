@@ -6,17 +6,20 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
+// Página de inicio
 $routes->get('/', 'Home::index');
 
+// // Login (GET y POST)
+// $routes->get('login', 'AuthController::login');
+// $routes->post('auth/login', 'AuthController::processLogin');
 
-// Rutas de autenticación
-$routes->get('/register', 'AuthController::register');
-$routes->post('/register', 'AuthController::register');
-$routes->get('/login', 'AuthController::login');
-$routes->post('/login', 'AuthController::login');
-$routes->get('/logout', 'AuthController::logout');
+// // Registro (GET y POST)
+// $routes->get('register', 'AuthController::register');
+// $routes->post('auth/register', 'AuthController::processRegister');
 
-// Rutas protegidas (opcional)
-$routes->group('', ['filter' => 'auth'], function($routes) {
-    $routes->get('/dashboard', 'Dashboard::index');
-});
+
+//$routes->get('login', 'AuthController::login');
+$routes->post('auth/login', 'AuthController::login');
+//$routes->get('register', 'AuthController::register');
+$routes->post('auth/registro', 'AuthController::registro');
+//$routes->get('logout', 'AuthController::logout');

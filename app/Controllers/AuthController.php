@@ -1,86 +1,79 @@
 <?php
+
 namespace App\Controllers;
 
-use App\Models\UserModel;
+use App\Models\UsuarioModel;
 use CodeIgniter\Controller;
 
 class AuthController extends Controller
 {
-    public function register()
-    {
-        helper(['form', 'url']);
-
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'nombre' => 'required|min_length[3]|max_length[100]',
-                'telefono' => 'permit_empty|numeric|max_length[15]',
-                'email' => 'required|valid_email|is_unique[users.email]',
-                'password' => 'required|min_length[8]',
-                'password_confirm' => 'required|matches[password]'
-            ];
-
-            if ($this->validate($rules)) {
-                $userModel = new UserModel();
-                $data = [
-                    'nombre' => $this->request->getPost('nombre'),
-                    'telefono' => $this->request->getPost('telefono'),
-                    'email' => $this->request->getPost('email'),
-                    'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT)
-                ];
-
-                if ($userModel->insert($data)) {
-                    return redirect()->to('/login')->with('success', 'Usuario registrado exitosamente.');
-                } else {
-                    return redirect()->back()->with('error', 'Error al registrar el usuario.');
-                }
-            } else {
-                return redirect()->back()->with('validation_errors', $this->validator->listErrors())->withInput();
-            }
-        }
-
-        return view('auth/register_view');
-    }
-
+    // Mostrar el formulario de login
     public function login()
     {
-        helper(['form', 'url']);
-
-        if ($this->request->getMethod() === 'post') {
-            $rules = [
-                'email' => 'required|valid_email',
-                'password' => 'required'
-            ];
-
-            if ($this->validate($rules)) {
-                $userModel = new UserModel();
-                $user = $userModel->where('email', $this->request->getPost('email'))->first();
-
-                if ($user && password_verify($this->request->getPost('password'), $user['password'])) {
-                    // Login exitoso - crear sesión
-                    $session = session();
-                    $session->set([
-                        'user_id' => $user['id'],
-                        'user_name' => $user['nombre'],
-                        'user_email' => $user['email'],
-                        'logged_in' => true
-                    ]);
-
-                    return redirect()->to('/dashboard')->with('success', 'Bienvenido ' . $user['nombre']);
-                } else {
-                    return redirect()->back()->with('error', 'Email o contraseña incorrectos.');
-                }
-            } else {
-                return redirect()->back()->with('validation_errors', $this->validator->listErrors())->withInput();
-            }
-        }
-
-        return view('auth/login_view');
+        return view('home'); // Cargar la vista de login (home.php)
     }
 
-    public function logout()
+    // Procesar el login
+    public function processLogin()
     {
-        $session = session();
-        $session->destroy();
-        return redirect()->to('/login')->with('success', 'Has cerrado sesión correctamente.');
+        $usuarioModel = new UsuarioModel(); // Modelo de usuarios
+
+        // Validación del formulario de login
+        if ($this->request->getMethod() === 'post') {
+            $rules = [
+                'email'    => 'required|valid_email',
+                'password' => 'required|min_length[6]',
+            ];
+
+            if (!$this->validate($rules)) {
+                return view('home', ['validation' => $this->validator]); // Si hay errores de validación
+            }
+
+            // Buscar el usuario en la base de datos
+            $usuario = $usuarioModel->where('email', $this->request->getPost('email'))->first();
+
+            if ($usuario && password_verify($this->request->getPost('password'), $usuario['password'])) {
+                // Iniciar sesión
+                session()->set('user_id', $usuario['id']);
+                return redirect()->to('/dashboard'); // Redirigir al dashboard
+            } else {
+                return view('home', ['error' => 'Credenciales incorrectas']); // Si las credenciales no son correctas
+            }
+        }
+    }
+
+    // Mostrar el formulario de registro
+    public function register()
+    {
+        return view('home'); // Cargar la vista de registro (home.php)
+    }
+
+    // Procesar el registro
+    public function processRegister()
+    {
+        $usuarioModel = new UsuarioModel(); // Instanciamos el modelo de usuarios
+
+        // Validación del formulario de registro
+        if ($this->request->getMethod() === 'post') {
+            $rules = [
+                'nombre'  => 'required|min_length[3]',
+                'email'   => 'required|valid_email|is_unique[usuarios.email]', // El email debe ser único
+                'password'=> 'required|min_length[6]',
+                'password_confirm' => 'matches[password]', // Asegurarse de que las contraseñas coincidan
+            ];
+
+            if (!$this->validate($rules)) {
+                return view('home', ['validation' => $this->validator]); // Si hay errores de validación
+            }
+
+            // Guardar el nuevo usuario en la base de datos
+            $usuarioModel->save([
+                'nombre' => $this->request->getPost('nombre'),
+                'email'  => $this->request->getPost('email'),
+                'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT), // Hasheamos la contraseña
+            ]);
+
+            return redirect()->to('/login'); // Redirigir al login después de registrar
+        }
     }
 }
